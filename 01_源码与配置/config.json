@@ -40,6 +40,10 @@
   "local_energy_addition": 0.4,
   "wireless_time_weight": 0.5,
   "wireless_energy_weight": 0.5,
+  "radio_time_reference_seconds": 1.0,
+  "radio_energy_reference_j": 0.1,
+  "local_device_power_w": 2.0,
+  "downlink_receive_power_w": 0.1,
   "queue_weight": 1.0,
   "queue_delay_base_seconds": 0.02,
   "queue_delay_scale_seconds": 0.25,
@@ -79,4 +83,3 @@
   },
   "figure_dpi": 300
 }
-

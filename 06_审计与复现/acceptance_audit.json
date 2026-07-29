@@ -1,0 +1,100 @@
+{
+  "overall_pass": true,
+  "checks": [
+    {
+      "requirement": "fresh_deepseek_profiles",
+      "status": "PASS",
+      "detail": "500 selected, successful, and fresh API profiles; 0 failures"
+    },
+    {
+      "requirement": "deepseek_cache_is_zero",
+      "status": "PASS",
+      "detail": "cache_hits=0"
+    },
+    {
+      "requirement": "execution_time_not_sent_to_llm",
+      "status": "PASS",
+      "detail": "manifest=false"
+    },
+    {
+      "requirement": "api_key_not_saved",
+      "status": "PASS",
+      "detail": "manifest=false"
+    },
+    {
+      "requirement": "source_data_sha256",
+      "status": "PASS",
+      "detail": "8 source files checked against SHA-256 manifest"
+    },
+    {
+      "requirement": "five_disjoint_task_pools",
+      "status": "PASS",
+      "detail": "rows=500, unique_source_rows=500, pool_sizes={1: 100, 2: 100, 3: 100, 4: 100, 5: 100}"
+    },
+    {
+      "requirement": "main_matrix_coverage",
+      "status": "PASS",
+      "detail": "rows=1350, independent instances=50"
+    },
+    {
+      "requirement": "wa_terminal_single_flip_check",
+      "status": "PASS",
+      "detail": "150/150 pass"
+    },
+    {
+      "requirement": "main_hard_constraint_violations",
+      "status": "PASS",
+      "detail": "all feasible online, baseline, and QDP rows have zero true violations"
+    },
+    {
+      "requirement": "binding_grid_coverage",
+      "status": "PASS",
+      "detail": "rows=3750, capacity pairs=25, modes=['hard', 'none', 'soft']"
+    },
+    {
+      "requirement": "binding_hard_constraints",
+      "status": "PASS",
+      "detail": "hard rows=1250, zero true violations, all single-flip checks pass"
+    },
+    {
+      "requirement": "wireless_sensitivity_coverage",
+      "status": "PASS",
+      "detail": "rows=750, factors=['bandwidth_mhz', 'downlink_power_w', 'image_payload_mb', 'path_loss_exponent', 'uplink_power_w']"
+    },
+    {
+      "requirement": "profiling_error_coverage",
+      "status": "PASS",
+      "detail": "rows=2400, four error magnitudes and three protections"
+    },
+    {
+      "requirement": "scale_coverage",
+      "status": "PASS",
+      "detail": "rows=120, N=[np.int64(30), np.int64(50), np.int64(80), np.int64(100), np.int64(150), np.int64(200)]"
+    },
+    {
+      "requirement": "qdp_oracle_scope",
+      "status": "PASS",
+      "detail": "all QDP rows explicitly limited to the quantized problem"
+    },
+    {
+      "requirement": "paper_tables_exist",
+      "status": "PASS",
+      "detail": "Table I-III are nonempty"
+    },
+    {
+      "requirement": "six_figures_in_four_formats",
+      "status": "PASS",
+      "detail": "PNG:6, PDF:6, SVG:6, TIFF:6"
+    },
+    {
+      "requirement": "raster_figure_pixel_audit",
+      "status": "PASS",
+      "detail": "12 PNG/TIFF audits are nonblank and high resolution"
+    },
+    {
+      "requirement": "readme_pdf_order_and_no_embedded_images",
+      "status": "PASS",
+      "detail": "I-VI and ordered V-A through V-H; figures referenced by links only"
+    }
+  ]
+}

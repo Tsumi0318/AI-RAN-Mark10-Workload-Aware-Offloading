@@ -1,0 +1,24 @@
+{
+  "experiment": "Mark10 standalone workload-aware wireless edge offloading",
+  "acceptance_pass": true,
+  "fresh_deepseek_profiles": 500,
+  "task_pools": 5,
+  "wireless_instances_per_pool": 10,
+  "main_algorithm_rows": 1350,
+  "binding_rows": 3750,
+  "figures": [
+    "Fig_1_system_model",
+    "Fig_2_workload_validation",
+    "Fig_3_binding_gap_heatmap",
+    "Fig_4_memory_models",
+    "Fig_5_wireless_fairness",
+    "Fig_6_convergence_runtime_signaling"
+  ],
+  "formats": [
+    "PNG",
+    "PDF",
+    "SVG",
+    "TIFF"
+  ],
+  "claim_boundary": "WA-MCBR is a finite-descent single-flip local optimum; QDP is global only for the quantized problem."
+}

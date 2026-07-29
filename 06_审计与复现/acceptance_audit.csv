@@ -1,0 +1,20 @@
+requirement,status,detail
+fresh_deepseek_profiles,PASS,"500 selected, successful, and fresh API profiles; 0 failures"
+deepseek_cache_is_zero,PASS,cache_hits=0
+execution_time_not_sent_to_llm,PASS,manifest=false
+api_key_not_saved,PASS,manifest=false
+source_data_sha256,PASS,8 source files checked against SHA-256 manifest
+five_disjoint_task_pools,PASS,"rows=500, unique_source_rows=500, pool_sizes={1: 100, 2: 100, 3: 100, 4: 100, 5: 100}"
+main_matrix_coverage,PASS,"rows=1350, independent instances=50"
+wa_terminal_single_flip_check,PASS,150/150 pass
+main_hard_constraint_violations,PASS,"all feasible online, baseline, and QDP rows have zero true violations"
+binding_grid_coverage,PASS,"rows=3750, capacity pairs=25, modes=['hard', 'none', 'soft']"
+binding_hard_constraints,PASS,"hard rows=1250, zero true violations, all single-flip checks pass"
+wireless_sensitivity_coverage,PASS,"rows=750, factors=['bandwidth_mhz', 'downlink_power_w', 'image_payload_mb', 'path_loss_exponent', 'uplink_power_w']"
+profiling_error_coverage,PASS,"rows=2400, four error magnitudes and three protections"
+scale_coverage,PASS,"rows=120, N=[np.int64(30), np.int64(50), np.int64(80), np.int64(100), np.int64(150), np.int64(200)]"
+qdp_oracle_scope,PASS,all QDP rows explicitly limited to the quantized problem
+paper_tables_exist,PASS,Table I-III are nonempty
+six_figures_in_four_formats,PASS,"PNG:6, PDF:6, SVG:6, TIFF:6"
+raster_figure_pixel_audit,PASS,12 PNG/TIFF audits are nonblank and high resolution
+readme_pdf_order_and_no_embedded_images,PASS,I-VI and ordered V-A through V-H; figures referenced by links only

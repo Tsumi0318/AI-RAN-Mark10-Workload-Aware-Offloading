@@ -1,0 +1,13 @@
+{
+  "status": "aborted_before_result_persistence",
+  "purpose": "engineering trace; excluded from final experiment metrics",
+  "scheduled_tasks": 500,
+  "successes_observed_by_progress_counter_before_exception": 475,
+  "failed_task_uid": "pool05-task096",
+  "failed_task_attempts": 4,
+  "root_cause": "DeepSeek returned an empty warning field; the original strict parser treated it as fatal",
+  "persisted_semantic_profiles": 0,
+  "profiles_reused_by_final_run": 0,
+  "remediation": "normalize an empty warning to none_reported and atomically checkpoint each completed result",
+  "api_key_saved": false
+}

@@ -1,0 +1,7 @@
+figure,archetype,core_conclusion,source_data,reviewer_risk_boundary
+1,schematic-led composite,"A single-cell controller couples offloading count, workload, and memory under hard limits.",model equations and configuration,No deployment or optimality claim
+2,quantitative grid,"Observed workload contains task-level information, while DeepSeek remains a heuristic profiler below supervised baselines.",profiler_predictions.csv; task_profiles.csv; Table II,Do not claim DeepSeek superiority
+3,quantitative grid,The projected WA-MCBR quantized gap varies across jointly binding workload and memory limits.,v_d_binding_capacity_summary.csv,Gap is to the quantized QDP optimum after projection
+4,quantitative grid,Hard constraints preserve feasibility while soft and unconstrained policies trade feasibility against the common business objective.,v_d_binding_capacity_summary.csv,Barrier penalty is not included in the common objective
+5,quantitative grid,"Wireless bandwidth, payload, distance, and path loss alter offloading value and service-quality fairness.",v_e_wireless_sensitivity_summary.csv; v_e_distance_layer_summary.csv,"Wireless inputs are simulated, not field measurements"
+6,quantitative grid,WA-MCBR exhibits finite descent with scale-dependent online runtime and signaling.,representative_convergence_trace.csv; v_g_scale_summary.csv,"Convergence is single-flip local, not global"

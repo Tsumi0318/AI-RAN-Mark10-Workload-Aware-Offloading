@@ -88,6 +88,30 @@ def largest_memory_repair(scenario: Scenario, strategy: np.ndarray) -> np.ndarra
     return result
 
 
+def quantized_feasible_projection(
+    scenario: Scenario,
+    strategy: np.ndarray,
+    delta_q: float,
+    delta_v: float,
+) -> np.ndarray:
+    result = np.asarray(strategy, dtype=np.int8).copy()
+    q_quantized = np.maximum(np.ceil(scenario.q_estimated / delta_q) * delta_q, delta_q)
+    v_quantized = np.maximum(np.ceil(scenario.v_estimated / delta_v) * delta_v, delta_v)
+    while True:
+        selected = np.flatnonzero(result)
+        workload = float(q_quantized[selected].sum())
+        memory = float(v_quantized[selected].sum())
+        if workload <= scenario.workload_limit + 1e-12 and memory <= scenario.memory_available_gb + 1e-12:
+            return result
+        k = max(len(selected), 1)
+        benefit = scenario.local_cost[selected] - scenario.offload_base[k, selected]
+        burden = (
+            q_quantized[selected] / max(scenario.workload_limit, 1e-12)
+            + v_quantized[selected] / max(scenario.memory_available_gb, 1e-12)
+        )
+        result[selected[int(np.argmin(benefit / np.maximum(burden, 1e-12)))]] = 0
+
+
 def run_wa_mcbr(
     scenario: Scenario,
     seed: int,

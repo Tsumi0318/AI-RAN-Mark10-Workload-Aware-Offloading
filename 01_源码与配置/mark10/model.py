@@ -288,3 +288,25 @@ class Scenario:
             "queue_delay_ms_per_offloaded_task": queue * 1000.0,
         }
 
+    def per_task_outcomes(self, strategy: np.ndarray) -> pd.DataFrame:
+        selected = np.asarray(strategy, dtype=bool)
+        k = int(selected.sum())
+        true_workload = float(self.q_true[selected].sum())
+        queue = self.queue_delay(true_workload) if k else 0.0
+        execution = self.tasks.exec_time_seconds.to_numpy(float)
+        delay = self.local_execution_seconds.copy()
+        energy = self.local_energy_j.copy()
+        if k:
+            delay[selected] = self.tx_time_seconds[k, selected] + execution[selected] + queue
+            energy[selected] = self.tx_energy_j[k, selected]
+        quality = 1.0 / (1.0 + delay)
+        return pd.DataFrame(
+            {
+                "task_uid": self.tasks.task_uid.to_numpy(),
+                "distance_m": self.tasks.distance_m.to_numpy(float),
+                "strategy": np.asarray(strategy, dtype=np.int8),
+                "end_to_end_delay_seconds": delay,
+                "device_energy_j": energy,
+                "service_quality": quality,
+            }
+        )

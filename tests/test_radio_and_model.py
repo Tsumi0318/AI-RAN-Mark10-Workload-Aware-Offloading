@@ -54,3 +54,14 @@ def test_metrics_separate_simulation_truth_from_estimates(synthetic_tasks, compa
     assert metrics["estimated_workload"] < metrics["true_workload"]
     assert metrics["estimated_memory_gb"] < metrics["true_memory_gb"]
 
+
+def test_per_task_outcomes_reconcile_with_aggregate_metrics(synthetic_tasks, compact_config) -> None:
+    wireless = generate_wireless_instance(synthetic_tasks, seed=5, config=compact_config)
+    scenario = Scenario(wireless, wireless.q_llm.to_numpy(), compact_config)
+    strategy = np.array([1, 0, 1, 0, 0, 1, 0, 0], dtype=np.int8)
+    outcomes = scenario.per_task_outcomes(strategy)
+    metrics = scenario.metrics(strategy)
+    assert outcomes.end_to_end_delay_seconds.sum() == pytest.approx(
+        metrics["total_end_to_end_delay_seconds"]
+    )
+    assert outcomes.device_energy_j.sum() == pytest.approx(metrics["total_device_energy_j"])

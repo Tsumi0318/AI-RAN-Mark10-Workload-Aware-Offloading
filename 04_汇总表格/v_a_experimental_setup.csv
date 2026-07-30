@@ -8,7 +8,7 @@ wireless,downlink_power,1.0,W,simulated
 wireless,path_loss_exponent,3.5,dimensionless,simulated
 resources,base_workload_capacity,60.0,dimensionless,simulated
 resources,memory_grid,"1.5,2.0,3.0,5.0,13.0",GB,simulated
-resources,vram_base,0.1625,GB/task,simulated; scaled by DeepSeek multiplier
+resources,vram_base,0.1625,GB/task,simulated; scaled by the LLM-profiler memory multiplier
 oracle,workload_quantization,0.1,dimensionless,upward rounding
 oracle,memory_quantization,0.1,GB,upward rounding
 statistics,independent_main_instances,50,instance,algorithm order is not an independent instance

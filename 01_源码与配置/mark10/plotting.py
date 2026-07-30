@@ -33,6 +33,12 @@ MODEL_COLORS = {
     "linear": PALETTE["blue"],
     "tree": PALETTE["teal"],
 }
+MODEL_DISPLAY_NAMES = {
+    "count": "Count",
+    "deepseek": "LLM profiler",
+    "linear": "Linear",
+    "tree": "Tree",
+}
 MODE_COLORS = {"hard": PALETTE["blue"], "soft": PALETTE["gold"], "none": PALETTE["coral"]}
 
 
@@ -104,7 +110,7 @@ def figure_1() -> None:
     )
     ax.add_patch(node_group)
     ax.text(2.03, 7.55, "Wireless nodes", ha="center", va="center", fontweight="bold")
-    ax.text(2.03, 6.95, r"binary choice  $s_i\in\{0,1\}$", ha="center", va="center", color=PALETTE["ink"])
+    ax.text(2.03, 6.95, r"binary choice  $x_i\in\{0,1\}$", ha="center", va="center", color=PALETTE["ink"])
     node_y = [5.85, 4.65, 2.85]
     node_labels = ["Node 1", "Node 2", "Node N"]
     for y, label in zip(node_y, node_labels):
@@ -146,17 +152,17 @@ def figure_1() -> None:
     _panel_label(eq, "b")
     eq.set_title("Coupled state and hard constraints", loc="left", pad=8)
     equations = [
-        (0.95, r"$K(\mathbf{s})=\sum_i s_i$", "offloaded task count", PALETTE["gray"]),
-        (0.76, r"$W(\mathbf{s})=\sum_i s_i q_i$", "aggregate workload", PALETTE["teal"]),
-        (0.57, r"$V(\mathbf{s})=\sum_i s_i v_i$", "aggregate memory", PALETTE["coral"]),
+        (0.95, r"$K(\mathbf{x})=\sum_i x_i$", "offloaded task count", PALETTE["gray"]),
+        (0.76, r"$W(\mathbf{x})=\sum_i x_i q_i$", "aggregate workload", PALETTE["teal"]),
+        (0.57, r"$V(\mathbf{x})=\sum_i x_i v_i$", "aggregate GPU memory", PALETTE["coral"]),
     ]
     for y, formula, note, color in equations:
         eq.add_patch(FancyBboxPatch((0.04, y - 0.115), 0.92, 0.14, boxstyle="round,pad=0.02", fc="white", ec=color, lw=1.0, transform=eq.transAxes))
         eq.text(0.09, y - 0.03, formula, transform=eq.transAxes, fontsize=10, color=PALETTE["ink"])
         eq.text(0.09, y - 0.085, note, transform=eq.transAxes, color=color)
-    eq.text(0.08, 0.36, r"Feasible: $W\leq W_{\max}$ and $V\leq V_{\max}$", transform=eq.transAxes, fontsize=8, fontweight="bold")
-    eq.text(0.08, 0.25, r"Congestion: $D_{\rm comp}=D_0+a\,\rho/(1-\rho)$, $\rho=W/C_W$", transform=eq.transAxes, fontsize=8)
-    eq.text(0.08, 0.12, "WA-MCBR accepts only feasible single flips\nthat reduce the public objective J.", transform=eq.transAxes, linespacing=1.5)
+    eq.text(0.08, 0.36, r"Feasible: $W(\mathbf{x})\leq(1-\varepsilon)C_w$ and $V(\mathbf{x})\leq V_{\mathrm{avail}}$", transform=eq.transAxes, fontsize=7.4, fontweight="bold")
+    eq.text(0.08, 0.25, r"Congestion: $D_q(W)=D_0+a\,\rho/(1-\rho)$, $\rho=W(\mathbf{x})/C_w$", transform=eq.transAxes, fontsize=7.4)
+    eq.text(0.08, 0.12, "WA-MCBR accepts only feasible single flips\nthat reduce the system objective J(x).", transform=eq.transAxes, linespacing=1.5)
     fig.subplots_adjust(left=0.04, right=0.98, top=0.90, bottom=0.07, wspace=0.13)
     _save_all(fig, "Fig_1_system_model")
 
@@ -174,7 +180,7 @@ def figure_2() -> None:
     _panel_label(ax, "a")
     for model in ["count", "deepseek", "linear", "tree"]:
         part = predictions.loc[predictions.model.eq(model)]
-        label = f"{model.capitalize()}  R²={metrics.loc[model, 'r2']:.2f}"
+        label = f"{MODEL_DISPLAY_NAMES[model]}  R²={metrics.loc[model, 'r2']:.2f}"
         ax.scatter(part.q_true_data, part.q_predicted, s=9, alpha=0.34, color=MODEL_COLORS[model], label=label, edgecolors="none")
     limit = float(np.nanpercentile(np.r_[predictions.q_true_data, predictions.q_predicted], 99.5))
     ax.plot([0, limit], [0, limit], color=PALETTE["ink"], lw=1.0, ls="--")
@@ -185,8 +191,8 @@ def figure_2() -> None:
     _panel_label(ax, "b")
     for column, label, color in [
         ("q_count", "Count", MODEL_COLORS["count"]),
-        ("q_llm", "DeepSeek", MODEL_COLORS["deepseek"]),
-        ("q_data", "Observed data", PALETTE["ink"]),
+        ("q_llm", "LLM workload", MODEL_COLORS["deepseek"]),
+        ("q_data", "Data workload (target)", PALETTE["ink"]),
     ]:
         values = np.sort(profiles[column].to_numpy(float))
         cdf = np.arange(1, len(values) + 1) / len(values)
@@ -347,9 +353,9 @@ def figure_6() -> None:
 def _figure_contracts() -> pd.DataFrame:
     rows = [
         (1, "schematic-led composite", "A single-cell controller couples offloading count, workload, and memory under hard limits.", "model equations and configuration", "No deployment or optimality claim"),
-        (2, "quantitative grid", "Observed workload contains task-level information, while DeepSeek remains a heuristic profiler below supervised baselines.", "profiler_predictions.csv; task_profiles.csv; Table II", "Do not claim DeepSeek superiority"),
+        (2, "quantitative grid", "Data workload contains task-level information, while the LLM profiler remains a heuristic below supervised baselines.", "profiler_predictions.csv; task_profiles.csv; Table II", "Do not claim LLM-profiler superiority"),
         (3, "quantitative grid", "The projected WA-MCBR quantized gap varies across jointly binding workload and memory limits.", "v_d_binding_capacity_summary.csv", "Gap is to the quantized QDP optimum after projection"),
-        (4, "quantitative grid", "Hard constraints preserve feasibility while soft and unconstrained policies trade feasibility against the common business objective.", "v_d_binding_capacity_summary.csv", "Barrier penalty is not included in the common objective"),
+        (4, "quantitative grid", "Hard constraints preserve feasibility while soft and unconstrained policies trade feasibility against the system objective J(x).", "v_d_binding_capacity_summary.csv", "Barrier penalty is not included in the system objective J(x)"),
         (5, "quantitative grid", "Wireless bandwidth, payload, distance, and path loss alter offloading value and service-quality fairness.", "v_e_wireless_sensitivity_summary.csv; v_e_distance_layer_summary.csv", "Wireless inputs are simulated, not field measurements"),
         (6, "quantitative grid", "WA-MCBR exhibits finite descent with scale-dependent online runtime and signaling.", "representative_convergence_trace.csv; v_g_scale_summary.csv", "Convergence is single-flip local, not global"),
     ]

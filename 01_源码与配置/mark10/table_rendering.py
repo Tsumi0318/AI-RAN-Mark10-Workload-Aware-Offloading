@@ -160,10 +160,13 @@ def render_table_ii(source: Path, output: Path) -> None:
         "Workload profiler prediction accuracy",
         output,
         figsize=(10.5, 4.4),
-        column_widths=[0.22, 0.19, 0.19, 0.19, 0.21],
+        column_widths=[0.32, 0.17, 0.17, 0.17, 0.17],
         bbox=(0.025, 0.24, 0.95, 0.57),
         font_size=13.5,
-        note="Out-of-pool evaluation (n=500); workloads are mean-normalized.",
+        note=(
+            "Out-of-pool evaluation (n=500); all workloads are mean-normalized.\n"
+            "Prediction target: mean-normalized Data workload derived from observed execution time."
+        ),
     )
 
 

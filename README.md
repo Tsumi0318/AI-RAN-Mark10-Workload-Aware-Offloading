@@ -11,7 +11,7 @@
 - [`02_任务池与画像`](02_任务池与画像)：5 个独立任务池、语义 Intent、DeepSeek 输出与任务画像。
 - [`03_逐运行结果`](03_逐运行结果)：每次仿真的原始记录。
 - [`04_汇总表格`](04_汇总表格)：Table I-III 和 V-A 至 V-H 统计汇总。
-- [`05_论文图表`](05_论文图表)：Fig. 1-6 的 [PNG](05_论文图表/PNG)、[PDF](05_论文图表/PDF)、[SVG](05_论文图表/SVG)、[TIFF](05_论文图表/TIFF) 版本。
+- [`05_论文图表`](05_论文图表)：Fig. 1-6 的 [PNG](05_论文图表/PNG)、[PDF](05_论文图表/PDF)、[SVG](05_论文图表/SVG)、[TIFF](05_论文图表/TIFF) 版本，以及按 Table III 样式渲染的 [Table I-II PNG](05_论文图表/TABLE_PNG)。
 - [`06_审计与复现`](06_审计与复现)：源数据、模型调用、图像与验收审计。
 
 ## I. Introduction
@@ -28,7 +28,7 @@
 
 ## III. System Model and Problem Formulation
 
-完整符号、单位和来源见 [Table I](04_汇总表格/table_i_symbols.csv)，系统关系见 [Fig. 1](05_论文图表/PNG/Fig_1_system_model.png)。
+主要符号见 [Table I CSV](04_汇总表格/table_i_symbols.csv) 和 [Table I PNG](05_论文图表/TABLE_PNG/Table_I_main_notation.png)，扩展符号的单位和来源见 [详细符号表](04_汇总表格/iii_symbol_details.csv)，系统关系见 [Fig. 1](05_论文图表/PNG/Fig_1_system_model.png)。
 
 ### A. Task decisions and aggregate state
 
@@ -210,7 +210,7 @@ WA-MCBR-Swap 在单翻转停止后尝试一个任务卸载、一个任务本地�
 
 **实际结果。** 500 条池外预测的 Count / DeepSeek / Linear / Tree 分别为：MAE $`=0.46895/0.47615/0.37048/0.32511`$，RMSE $`=0.68826/0.67432/0.54884/0.48721`$，$`R^2=0.00000/0.04009/0.36410/0.49890`$，Spearman $`=0.00000/0.23470/0.47358/0.54763`$。Tree 是这里最强的受监督基线，DeepSeek 略优于 Count 的 RMSE 和 $`R^2`$，但 MAE 更高，且明显落后于受监督模型。
 
-见 [Table II](04_汇总表格/table_ii_profiler_metrics.csv)、[逐池指标](04_汇总表格/v_b_profiler_metrics_by_pool.csv) 与 [Fig. 2](05_论文图表/PNG/Fig_2_workload_validation.png)。
+见 [Table II CSV](04_汇总表格/table_ii_profiler_metrics.csv)、[Table II PNG](05_论文图表/TABLE_PNG/Table_II_profiler_metrics.png)、[逐池指标](04_汇总表格/v_b_profiler_metrics_by_pool.csv) 与 [Fig. 2](05_论文图表/PNG/Fig_2_workload_validation.png)。
 
 **受证据约束的结论。** 本数据上，任务级工作量确实含有异构信息；DeepSeek 只能定位为可替换的启发式 profiler，不能声称优于有标签监督回归，也不能用该结果推广到其他模型或工作负载。
 

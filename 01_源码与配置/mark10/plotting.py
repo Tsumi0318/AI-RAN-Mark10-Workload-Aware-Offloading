@@ -164,7 +164,11 @@ def figure_1() -> None:
 def figure_2() -> None:
     predictions = pd.read_csv(RUN_DIR / "profiler_predictions.csv")
     profiles = pd.read_csv(ROOT / "02_任务池与画像" / "task_profiles.csv")
-    metrics = pd.read_csv(TABLE_DIR / "table_ii_profiler_metrics.csv").set_index("model")
+    metrics = (
+        pd.read_csv(TABLE_DIR / "v_b_profiler_metrics_by_pool.csv")
+        .loc[lambda frame: frame.subset.eq("all_out_of_pool")]
+        .set_index("model")
+    )
     fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.35))
     ax = axes[0]
     _panel_label(ax, "a")

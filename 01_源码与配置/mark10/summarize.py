@@ -87,7 +87,23 @@ def summarize_with_ci(
     return pd.DataFrame(rows)
 
 
-def _symbols_table() -> pd.DataFrame:
+def build_main_symbols_table() -> pd.DataFrame:
+    rows = [
+        ("x_i", "binary offloading decision of task i"),
+        ("q_i", "normalized workload of task i"),
+        ("v_i", "GPU memory demand of task i"),
+        ("K(x)", "number of offloaded tasks"),
+        ("W(x)", "aggregate offloaded workload"),
+        ("V(x)", "aggregate GPU memory usage"),
+        ("C_w", "edge workload capacity"),
+        ("V_avail", "available edge GPU memory"),
+        ("B_total", "total wireless bandwidth"),
+        ("J(x)", "system-level optimization objective"),
+    ]
+    return pd.DataFrame(rows, columns=["Symbol", "Definition"])
+
+
+def _symbol_details_table() -> pd.DataFrame:
     rows = [
         ("N", "number of edge tasks/nodes", "task", "experiment input"),
         ("s_i", "binary decision: 1 offload, 0 local", "binary", "decision variable"),
@@ -136,12 +152,58 @@ def select_overall_profiler_rows(source: pd.DataFrame) -> pd.DataFrame:
     return overall
 
 
-def _overall_profiler_table() -> pd.DataFrame:
-    source = pd.read_csv(TABLE_DIR / "table_ii_profiler_metrics.csv")
-    write_csv(TABLE_DIR / "v_b_profiler_metrics_by_pool.csv", source)
+def build_main_profiler_table(source: pd.DataFrame) -> pd.DataFrame:
+    required = {"model", "subset", "mae", "rmse", "r2", "spearman"}
+    missing = required - set(source.columns)
+    if missing:
+        raise KeyError(f"Missing profiler columns: {sorted(missing)}")
     overall = select_overall_profiler_rows(source)
-    overall.insert(3, "target_unit", "mean-normalized workload")
-    return overall
+    display_names = {
+        "count": "Count",
+        "deepseek": "DeepSeek",
+        "linear": "Linear",
+        "tree": "Tree",
+    }
+    order = {name: index for index, name in enumerate(display_names)}
+    unknown = set(overall["model"]) - set(display_names)
+    if unknown:
+        raise ValueError(f"Unknown profiler models: {sorted(unknown)}")
+    overall = overall.assign(_order=overall["model"].map(order)).sort_values("_order")
+    return pd.DataFrame(
+        {
+            "Model": overall["model"].map(display_names).to_numpy(),
+            "MAE down": pd.to_numeric(overall["mae"], errors="raise").to_numpy(),
+            "RMSE down": pd.to_numeric(overall["rmse"], errors="raise").to_numpy(),
+            "R2 up": pd.to_numeric(overall["r2"], errors="raise").to_numpy(),
+            "Spearman up": pd.to_numeric(overall["spearman"], errors="raise").to_numpy(),
+        }
+    )
+
+
+def choose_profiler_detail_source(
+    current: pd.DataFrame,
+    detailed: pd.DataFrame,
+) -> tuple[pd.DataFrame, bool]:
+    has_per_pool_rows = (
+        "subset" in current.columns
+        and current["subset"].astype(str).ne("all_out_of_pool").any()
+    )
+    if has_per_pool_rows:
+        return current, True
+    if "subset" not in detailed.columns:
+        raise ValueError("Detailed profiler metrics contain no subset column")
+    return detailed, False
+
+
+def _overall_profiler_table() -> pd.DataFrame:
+    main_path = TABLE_DIR / "table_ii_profiler_metrics.csv"
+    details_path = TABLE_DIR / "v_b_profiler_metrics_by_pool.csv"
+    current = pd.read_csv(main_path)
+    detailed = pd.read_csv(details_path)
+    source, should_persist = choose_profiler_detail_source(current, detailed)
+    if should_persist:
+        write_csv(details_path, source)
+    return build_main_profiler_table(source)
 
 
 def _finite_mean(values: pd.Series) -> float:
@@ -307,9 +369,10 @@ def _main_table() -> pd.DataFrame:
 def build_all_tables() -> dict[str, pd.DataFrame]:
     config = load_config()
     outputs: dict[str, pd.DataFrame] = {
-        "table_i_symbols.csv": _symbols_table(),
+        "table_i_symbols.csv": build_main_symbols_table(),
         "table_ii_profiler_metrics.csv": _overall_profiler_table(),
         "table_iii_algorithm_comparison.csv": _main_table(),
+        "iii_symbol_details.csv": _symbol_details_table(),
         "v_a_experimental_setup.csv": _setup_table(config),
     }
 

@@ -1,18 +1,11 @@
-symbol,definition,unit,provenance
-N,number of edge tasks/nodes,task,experiment input
-s_i,"binary decision: 1 offload, 0 local",binary,decision variable
-K,number of offloaded tasks,task,sum_i s_i
-q_i,normalized workload of task i,dimensionless,profiler output
-W,aggregate offloaded workload,dimensionless,sum_i s_i q_i
-W_max,workload hard limit,dimensionless,simulation parameter
-v_i,simulated memory demand of task i,GB,v_base times LLM multiplier
-V,aggregate offloaded memory demand,GB,sum_i s_i v_i
-V_max,available edge memory hard limit,GB,simulation parameter
-R_i^up,uplink rate of task i,bit/s,wireless model
-R_i^down,downlink rate of task i,bit/s,wireless model
-D_comp(W),workload-dependent edge congestion delay,s,queue proxy
-C_i^loc,local execution cost,normalized cost,delay-energy aggregate
-C_i^off,offloading cost,normalized cost,"radio, execution, congestion"
-J(s),barrier-free public business objective,normalized cost,evaluation target
-Delta_q,workload quantization step,dimensionless,QDP parameter
-Delta_v,memory quantization step,GB,QDP parameter
+Symbol,Definition
+x_i,binary offloading decision of task i
+q_i,normalized workload of task i
+v_i,GPU memory demand of task i
+K(x),number of offloaded tasks
+W(x),aggregate offloaded workload
+V(x),aggregate GPU memory usage
+C_w,edge workload capacity
+V_avail,available edge GPU memory
+B_total,total wireless bandwidth
+J(x),system-level optimization objective

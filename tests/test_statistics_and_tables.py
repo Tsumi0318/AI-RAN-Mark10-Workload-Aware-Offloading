@@ -6,6 +6,7 @@ import pytest
 
 from mark10.summarize import (
     TABLE_III_COLUMNS,
+    _symbol_details_table,
     build_main_profiler_table,
     build_main_symbols_table,
     build_main_comparison_table,
@@ -65,7 +66,12 @@ def test_table_ii_contains_only_compact_held_out_metrics() -> None:
         "R2 up",
         "Spearman up",
     ]
-    assert table["Model"].tolist() == ["Count", "DeepSeek", "Linear", "Tree"]
+    assert table["Model"].tolist() == [
+        "Count",
+        "LLM profiler (DeepSeek)",
+        "Linear",
+        "Tree",
+    ]
     assert table["MAE down"].tolist() == pytest.approx([0.47, 0.48, 0.37, 0.33])
 
 
@@ -96,6 +102,15 @@ def test_table_ii_rendering_does_not_apply_best_or_second_best_emphasis(
     assert captured.get("ranked_cells") is None
     assert "Bold" not in captured["note"]
     assert "underline" not in captured["note"]
+    assert "Prediction target: mean-normalized Data workload" in captured["note"]
+
+
+def test_detailed_symbols_follow_pdf_notation() -> None:
+    table = _symbol_details_table()
+    symbols = set(table["symbol"])
+
+    assert {"x_i", "K(x)", "W(x)", "V(x)", "C_w", "V_avail", "D_q(W)", "J(x)"} <= symbols
+    assert {"s_i", "K", "W", "V", "W_max", "V_max", "D_comp(W)", "J(s)"}.isdisjoint(symbols)
 
 
 def test_profiler_detail_source_does_not_replace_pool_rows_with_aggregate_only() -> None:

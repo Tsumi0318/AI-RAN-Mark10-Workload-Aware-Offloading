@@ -2,7 +2,7 @@
 
 ## 1. Goal
 
-Build a fresh, standalone Mark10 experiment that implements and evaluates the framework in `Distributed Workload-Aware Offloading for Memory-Constrained Wireless Edge AI.pdf`. Mark9 remains unchanged and is used only as a code-pattern reference. Mark10 must generate fresh task pools, fresh DeepSeek profiles, fresh simulation runs, all required data tables, and only the six figures specified by the PDF.
+Build a fresh, standalone Mark10 experiment that implements and evaluates the framework in `Distributed Workload-Aware Offloading for Memory-Constrained Wireless Edge AI.pdf`. Mark9 remains unchanged and is used only as a code-pattern reference. Mark10 must generate fresh task pools, fresh LLM-profiler outputs through the DeepSeek implementation, fresh simulation runs, all required data tables, and only the six figures specified by the PDF.
 
 ## 2. Research Boundary
 
@@ -62,7 +62,7 @@ Build a fresh, standalone Mark10 experiment that implements and evaluates the fr
 
 ### 4.1 Shared model
 
-All algorithms use the same binary decision vector, aggregate count `K`, aggregate workload `W`, aggregate memory `V`, radio model, congestion proxy, hard workload limit, hard memory limit, and public business objective `J`.
+All algorithms use the same binary decision vector `x`, aggregate count `K(x)`, aggregate workload `W(x)`, aggregate GPU-memory usage `V(x)`, radio model, workload-congestion proxy `D_q(W)`, workload limit `(1-epsilon)C_w`, memory limit `V_avail`, and system objective `J(x)`.
 
 ### 4.2 Algorithms
 
@@ -101,7 +101,7 @@ All algorithms use the same binary decision vector, aggregate count `K`, aggrega
 ### 5.2 Workload profiler validation
 
 - Split by task pool or time window to prevent leakage.
-- Compare Count, linear regression, tree regression, and DeepSeek profiler predictions.
+- Compare Count, linear regression, tree regression, and LLM-profiler predictions from the DeepSeek implementation.
 - Report MAE, RMSE, R-squared, and Spearman rank correlation on the held-out test data.
 - If DeepSeek does not outperform the supervised baselines, describe it as a heuristic replaceable profiler.
 
@@ -109,7 +109,7 @@ All algorithms use the same binary decision vector, aggregate count `K`, aggrega
 
 - Sweep workload limits over 20%, 40%, 60%, 80%, and 100% of the base capacity.
 - Sweep available memory over 1.5, 2, 3, 5, and 13 GB.
-- Compare hard constraint, soft exponential barrier, and unconstrained memory models using the same public business objective without the barrier penalty.
+- Compare hard constraint, soft exponential barrier, and unconstrained memory models using the same system objective `J(x)` without the barrier penalty.
 - Report barrier penalties separately.
 
 ### 5.4 Wireless sensitivity and fairness
@@ -194,7 +194,7 @@ The README refers to figures using text such as `见 Fig. 3` and links the outpu
 - Test hard workload and memory feasibility.
 - Test that every accepted WA-MCBR update strictly reduces `J` and that termination passes a full single-flip audit.
 - Test conservative QDP quantization and compare small cases against exhaustive enumeration.
-- Test that hard, soft, and unconstrained policies are evaluated with the same barrier-free business objective.
+- Test that hard, soft, and unconstrained policies are evaluated with the same barrier-free system objective `J(x)`.
 - Test wireless-instance independence and cross-algorithm identity.
 - Test metric formulas, confidence intervals, Jain fairness, and signaling byte accounting.
 - Audit every required CSV column, every required README subsection, and every required Fig. 1-6 output.

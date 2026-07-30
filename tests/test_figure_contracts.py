@@ -5,6 +5,8 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
+from mark10 import plotting
+
 
 ROOT = Path(__file__).resolve().parents[1]
 FIGURE_ROOT = ROOT / "05_论文图表"
@@ -44,3 +46,17 @@ def test_vector_figures_are_nonempty() -> None:
         assert len(paths) == 6
         for path in paths:
             assert path.stat().st_size > 10_000
+
+
+def test_figure_1_uses_pdf_notation(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(plotting, "FIGURE_ROOT", tmp_path)
+    plotting._configure_style()
+
+    plotting.figure_1()
+
+    svg = (tmp_path / "SVG" / "Fig_1_system_model.svg").read_text(encoding="utf-8")
+    assert r"K(\mathbf{x})" in svg
+    assert r"(1-\varepsilon)C_w" in svg
+    assert r"V_{\mathrm{avail}}" in svg
+    assert r"D_q(W)" in svg
+    assert r"\mathbf{s}" not in svg

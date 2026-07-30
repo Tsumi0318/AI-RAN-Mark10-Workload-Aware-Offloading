@@ -1,18 +1,30 @@
 symbol,definition,unit,provenance
 N,number of edge tasks/nodes,task,experiment input
-s_i,"binary decision: 1 offload, 0 local",binary,decision variable
-K,number of offloaded tasks,task,sum_i s_i
-q_i,normalized workload of task i,dimensionless,profiler output
-W,aggregate offloaded workload,dimensionless,sum_i s_i q_i
-W_max,workload hard limit,dimensionless,simulation parameter
-v_i,simulated memory demand of task i,GB,v_base times LLM multiplier
-V,aggregate offloaded memory demand,GB,sum_i s_i v_i
-V_max,available edge memory hard limit,GB,simulation parameter
-R_i^up,uplink rate of task i,bit/s,wireless model
-R_i^down,downlink rate of task i,bit/s,wireless model
-D_comp(W),workload-dependent edge congestion delay,s,queue proxy
+x_i,"binary decision: 1 offload, 0 local",binary,decision variable
+K(x),number of offloaded tasks,task,sum_i x_i
+q_i,mean-normalized workload of task i,dimensionless,workload representation
+q_i^Count,constant-count workload baseline,dimensionless,equal to 1
+q_i^Data,observed data-derived workload target,dimensionless,normalized execution time
+q_i^LLM,LLM-profiler workload estimate,dimensionless,DeepSeek implementation
+W(x),aggregate offloaded workload,dimensionless,sum_i x_i q_i
+C_w,nominal edge workload capacity,dimensionless,simulation parameter
+(1-epsilon)C_w,workload hard limit,dimensionless,epsilon is the safety margin
+v_i,simulated GPU-memory demand of task i,GB,v_base times m_i
+m_i,LLM-profiler memory multiplier,dimensionless,DeepSeek implementation
+V(x),aggregate GPU-memory usage,GB,sum_i x_i v_i
+V_avail,available edge GPU memory,GB,simulation parameter
+B_total,total wireless bandwidth,bit/s,simulation parameter
+B_i(x),bandwidth share of offloaded task i,bit/s,B_total divided by K(x)
+R_i^up(K),uplink rate of task i,bit/s,wireless model
+R_i^down(K),downlink rate of task i,bit/s,wireless model
+T_i^tx(K),wireless transmission delay of task i,s,wireless model
+E_i^tx(K),device transmission energy of task i,J,wireless model
+rho(x),aggregate workload utilization,dimensionless,W(x) divided by C_w
+D_q(W),monotone workload-congestion proxy,s,not a measured queue predictor
 C_i^loc,local execution cost,normalized cost,delay-energy aggregate
-C_i^off,offloading cost,normalized cost,"radio, execution, congestion"
-J(s),barrier-free public business objective,normalized cost,evaluation target
+C_i^off(K),base offloading cost,normalized cost,edge execution and radio cost
+J(x),barrier-free system objective,normalized cost,common evaluation target
+J_soft(x),soft-memory decision objective,normalized cost,J(x) plus barrier penalty
+epsilon_alg,strict-update tolerance,normalized cost,WA-MCBR parameter
 Delta_q,workload quantization step,dimensionless,QDP parameter
 Delta_v,memory quantization step,GB,QDP parameter

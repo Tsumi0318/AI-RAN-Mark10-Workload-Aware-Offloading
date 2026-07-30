@@ -2,17 +2,18 @@
 
 这是一次独立、可审计的 Mark10 仿真实验。它按 `Distributed Workload-Aware Offloading for Memory-Constrained Wireless Edge AI` 的 I-VI 结构实现共享无线链路和边缘 GPU 资源下的二元卸载，并将每项数值、图表和结论边界保存为可复查文件。
 
-**先读结论边界。** GenTD26 提供真实生产生成式 AI 服务请求特征与执行时间；无线信道、端侧设备、图像载荷字节数、任务级显存和资源容量均为仿真设定。DeepSeek 在本实验中是离线、可替换的工作量与模拟显存画像器；Python 计算所有确定性代价并执行决策。WA-MCBR 的保证是有限下降后的单翻转局部最优，不是全局最优。QDP-Oracle 的“全局最优”只针对向上量化后的离散问题。
+**先读结论边界。** GenTD26 提供真实生产生成式 AI 服务请求特征与执行时间；无线信道、端侧设备、图像载荷字节数、任务级显存和资源容量均为仿真设定。LLM profiler 是离线、可替换的工作量与模拟显存画像接口，本次实现使用 DeepSeek；Python 计算所有确定性代价并执行决策。WA-MCBR 的保证是有限下降后的单翻转局部最优，不是全局最优。QDP-Oracle 的“全局最优”只针对向上量化后的离散问题。
 
 ## Repository map
 
 - [`00_原始数据`](00_原始数据)：GenTD26 原始追踪及 SHA-256 溯源。
 - [`01_源码与配置`](01_源码与配置)：配置、Python 实现和验证入口。
-- [`02_任务池与画像`](02_任务池与画像)：5 个独立任务池、语义 Intent、DeepSeek 输出与任务画像。
+- [`02_任务池与画像`](02_任务池与画像)：5 个独立任务池、语义 Intent、LLM-profiler 输出与任务画像。
 - [`03_逐运行结果`](03_逐运行结果)：每次仿真的原始记录。
 - [`04_汇总表格`](04_汇总表格)：Table I-III 和 V-A 至 V-H 统计汇总。
 - [`05_论文图表`](05_论文图表)：Fig. 1-6 的 [PNG](05_论文图表/PNG)、[PDF](05_论文图表/PDF)、[SVG](05_论文图表/SVG)、[TIFF](05_论文图表/TIFF) 版本，以及按 Table III 样式渲染的 [Table I-II PNG](05_论文图表/TABLE_PNG)。
 - [`06_审计与复现`](06_审计与复现)：源数据、模型调用、图像与验收审计。
+- [`TERMINOLOGY.md`](TERMINOLOGY.md)：后续 draft 必须遵循的术语、数学符号和内部字段映射。
 
 ## I. Introduction
 
@@ -24,78 +25,84 @@
 
 本实现对应工作量感知、显存约束、无线卸载和分布式单节点更新四个部分。它不等同于完整 AI-RAN 部署：没有真实端侧硬件、运营商无线测量、动态到达过程、多小区干扰或真实 GPU OOM 事件。
 
-与只按任务数建模相比，中心拥塞由聚合工作量 $`W`$ 驱动；与软显存惩罚不同，主算法使用显式显存硬约束。为比较不同策略，公共业务目标不含软障碍项；软障碍只用于软约束决策模型，罚项单独记录。
+与只按任务数建模相比，中心拥塞由聚合工作量 $`W(\mathbf{x})`$ 驱动；与软显存惩罚不同，主算法使用显式显存硬约束。为比较不同策略，系统目标 $`J(\mathbf{x})`$ 不含软障碍项；软障碍只用于软约束决策模型，罚项单独记录。
 
 ## III. System Model and Problem Formulation
 
-主要符号见 [Table I CSV](04_汇总表格/table_i_symbols.csv) 和 [Table I PNG](05_论文图表/TABLE_PNG/Table_I_main_notation.png)，扩展符号的单位和来源见 [详细符号表](04_汇总表格/iii_symbol_details.csv)，系统关系见 [Fig. 1](05_论文图表/PNG/Fig_1_system_model.png)。
+主要符号见 [Table I CSV](04_汇总表格/table_i_symbols.csv) 和 [Table I PNG](05_论文图表/TABLE_PNG/Table_I_main_notation.png)，扩展符号的单位和来源见 [详细符号表](04_汇总表格/iii_symbol_details.csv)，完整写作标准见 [术语与符号表](TERMINOLOGY.md)，系统关系见 [Fig. 1](05_论文图表/PNG/Fig_1_system_model.png)。
 
 ### A. Task decisions and aggregate state
 
 对任务集合 $`\mathcal{N}=\lbrace 1,\ldots,N\rbrace`$，令：
 
 ```math
-s_i \in \{0,1\},\qquad
-s_i=1\;\text{表示卸载，}\quad s_i=0\;\text{表示本地执行}.
+x_i \in \{0,1\},\qquad
+x_i=1\;\text{表示卸载，}\quad x_i=0\;\text{表示本地执行}.
 ```
 
 共享状态为：
 
 ```math
-K(\mathbf{s})=\sum_i s_i,
+K(\mathbf{x})=\sum_i x_i,
 \qquad
-W(\mathbf{s})=\sum_i s_iq_i,
+W(\mathbf{x})=\sum_i x_iq_i,
 \qquad
-V(\mathbf{s})=\sum_i s_iv_i.
+V(\mathbf{x})=\sum_i x_iv_i.
 ```
 
-其中 $`q_i`$ 是均值归一化的任务工作量，$`v_i`$ 是任务级模拟显存需求。任务的真实执行时间只用于构造验证标签与确定性代价；它不发送给 DeepSeek。每条任务的显存按下式构造：
+其中 $`q_i`$ 是均值归一化的任务工作量。实验区分 Count workload $`q_i^{\mathrm{Count}}`$、Data workload $`q_i^{\mathrm{Data}}`$ 与 LLM workload $`q_i^{\mathrm{LLM}}`$；$`q_i^{\mathrm{Data}}`$ 由观测执行时间构造并作为预测目标。$`v_i`$ 是任务级模拟 GPU 显存需求。任务的真实执行时间不发送给 LLM profiler。每条任务的显存按下式构造：
 
 ```math
 v_i=v_{\mathrm{base}}m_i,
 \qquad v_{\mathrm{base}}=0.1625\;\mathrm{GB},
 ```
 
-其中 $`m_i`$ 是 DeepSeek 返回的显存倍率。因此 $`v_i`$ 是模拟值，不是逐请求实测 VRAM。
+其中 $`m_i`$ 是 LLM profiler 返回的显存倍率，本次具体实现使用 DeepSeek。因此 $`v_i`$ 是模拟值，不是逐请求实测 VRAM。
 
 ### B. Wireless transmission model
 
-每个无线实例重采样位置和对数正态阴影衰落；同一实例在所有算法间保持一致。若当前有 $`K\geq1`$ 个卸载任务，则每个任务平均获得 $`B/K`$ 带宽：
+每个无线实例重采样位置和对数正态阴影衰落；同一实例在所有算法间保持一致。若当前有 $`K(\mathbf{x})\geq1`$ 个卸载任务，则每个任务获得的带宽为：
 
 ```math
-R_i^{\mathrm{up}}=\frac{B}{K}\log_2\left(1+\frac{P_{\mathrm{up}}g_i}{N_0B/K}\right),
+B_i(\mathbf{x})=\frac{B_{\mathrm{total}}}{K(\mathbf{x})}.
+```
+
+上下行速率为：
+
+```math
+R_i^{\mathrm{up}}(K)=B_i(\mathbf{x})\log_2\left(1+\frac{P_i^{\mathrm{up}}h_i}{N_0B_i(\mathbf{x})}\right),
 \qquad
-R_i^{\mathrm{down}}=\frac{B}{K}\log_2\left(1+\frac{P_{\mathrm{down}}g_i}{N_0B/K}\right).
+R_i^{\mathrm{down}}(K)=B_i(\mathbf{x})\log_2\left(1+\frac{P_i^{\mathrm{down}}h_i}{N_0B_i(\mathbf{x})}\right).
 ```
 
 TXT2IMG 仅上传 Prompt/元数据；IMG2IMG 额外上传输入图像；Inpainting 额外上传输入图像与 mask。下行均下载生成图像。传输时延和设备传输能耗为：
 
 ```math
-T_i^{\mathrm{tx}}=\frac{L_i^{\mathrm{up}}}{R_i^{\mathrm{up}}}+\frac{L_i^{\mathrm{down}}}{R_i^{\mathrm{down}}},
+T_i^{\mathrm{tx}}(K)=\frac{L_i^{\mathrm{up}}}{R_i^{\mathrm{up}}(K)}+\frac{L_i^{\mathrm{down}}}{R_i^{\mathrm{down}}(K)},
 \qquad
-E_i^{\mathrm{tx}}=P_{\mathrm{up}}\frac{L_i^{\mathrm{up}}}{R_i^{\mathrm{up}}}+P_{\mathrm{rx}}\frac{L_i^{\mathrm{down}}}{R_i^{\mathrm{down}}}.
+E_i^{\mathrm{tx}}(K)=P_i^{\mathrm{up}}\frac{L_i^{\mathrm{up}}}{R_i^{\mathrm{up}}(K)}+P_{\mathrm{rx}}\frac{L_i^{\mathrm{down}}}{R_i^{\mathrm{down}}(K)}.
 ```
 
 这些无线量和图像字节数是仿真参数，并非现场测量。
 
 ### C. Workload congestion and hard constraints
 
-设边缘工作量容量为 $`C_W`$，使用率为 $`\rho=W/C_W`$。实现采用如下排队代理：
+设边缘工作量容量为 $`C_w`$，工作量利用率为 $`\rho(\mathbf{x})=W(\mathbf{x})/C_w`$。实现采用如下单调工作量拥塞代理：
 
 ```math
-D_{\mathrm{comp}}(W)=D_0+a\frac{\rho}{1-\rho},
+D_q(W)=D_0+a\frac{\rho(\mathbf{x})}{1-\rho(\mathbf{x})},
 \qquad \rho<1.
 ```
 
-工作量安全上限取 $`W_{\max}=0.95C_W`$，显存可用上限为 $`V_{\max}`$。主算法只接受同时满足的策略：
+工作量安全裕量取 $`\varepsilon=0.05`$，边缘可用 GPU 显存为 $`V_{\mathrm{avail}}`$。主算法只接受同时满足的策略：
 
 ```math
-W(\mathbf{s})\leq W_{\max},
+W(\mathbf{x})\leq(1-\varepsilon)C_w,
 \qquad
-V(\mathbf{s})\leq V_{\max}.
+V(\mathbf{x})\leq V_{\mathrm{avail}}.
 ```
 
-### D. Cost and public objective
+### D. Cost and system objective
 
 令 $`t_i`$ 为数据中的执行时间，$`\tilde t`$ 为同一实例的中位执行时间。实现中的本地和卸载基础成本为：
 
@@ -104,26 +111,28 @@ C_i^{\mathrm{loc}}=1.8\frac{t_i}{\tilde t}+0.4,
 ```
 
 ```math
-C_i^{\mathrm{off,base}}=
+C_i^{\mathrm{off}}(K)=
 \frac{t_i}{\tilde t}
  +0.5\frac{T_i^{\mathrm{tx}}}{1\;\mathrm{s}}
  +0.5\frac{E_i^{\mathrm{tx}}}{0.1\;\mathrm{J}}.
 ```
 
-用于统一比较的无障碍公共业务目标为：
+用于统一比较的无障碍系统目标为：
 
 ```math
-J(\mathbf{s})=
-\sum_{i:s_i=0}C_i^{\mathrm{loc}}
-+\sum_{i:s_i=1}C_i^{\mathrm{off,base}}
-+K(\mathbf{s})D_{\mathrm{comp}}(W(\mathbf{s})).
+J(\mathbf{x})=
+\sum_i(1-x_i)C_i^{\mathrm{loc}}
++\sum_i x_iC_i^{\mathrm{off}}(K)
++\lambda_qK(\mathbf{x})D_q(W(\mathbf{x})).
 ```
+
+本次配置中 $`\lambda_q=1`$；所有算法均使用同一个 $`J(\mathbf{x})`$ 进行性能比较。
 
 软显存策略仅在**决策阶段**附加：
 
 ```math
-J_{\mathrm{soft}}(\mathbf{s})=J(\mathbf{s})+
-K(\mathbf{s})\alpha\exp\left[\beta\left(\frac{V(\mathbf{s})}{V_{\max}}-1\right)\right],
+J_{\mathrm{soft}}(\mathbf{x})=J(\mathbf{x})+
+K(\mathbf{x})\alpha\exp\left[\beta\left(\frac{V(\mathbf{x})}{V_{\mathrm{avail}}}-1\right)\right],
 ```
 
 其中 $`\alpha=1.2`$、$`\beta=8.0`$。V-D 报告 $`J`$ 与 barrier penalty 为不同字段，避免把不同目标混作性能比较。
@@ -146,27 +155,27 @@ QDP 对 $`q_i`$ 和 $`v_i`$ 都向上量化，保证量化解对原资源约束�
 
 ### A. Feasible initialization and WA-MCBR
 
-WA-MCBR 从随机二元策略开始。若初始策略超出任何硬资源限制，则重复移除“公共目标收益 / 归一化联合资源负担”最低的已卸载任务，直到可行。每次异步抽取一个任务 $`i`$，分别评估 $`s_i=0`$ 与 $`s_i=1`$ 的完整决策目标。候选可行且严格降低目标时，更新规则为：
+WA-MCBR 从随机二元策略开始。若初始策略超出任何硬资源限制，则重复移除“系统目标收益 / 归一化联合资源负担”最低的已卸载任务，直到可行。每次异步抽取一个任务 $`i`$，分别评估 $`x_i=0`$ 与 $`x_i=1`$ 的完整决策目标。候选可行且严格降低目标时，更新规则为：
 
 ```math
-s_i \leftarrow 1
+x_i \leftarrow 1
 \quad \mathrm{if}\quad
-J_{\mathrm{decision}}(s_i=1)
+J_{\mathrm{decision}}(x_i=1)
 <
-J_{\mathrm{decision}}(s_i=0)-\epsilon.
+J_{\mathrm{decision}}(x_i=0)-\varepsilon_{\mathrm{alg}}.
 ```
 
 ```math
-s_i \leftarrow 0
+x_i \leftarrow 0
 \quad \mathrm{if}\quad
-J_{\mathrm{decision}}(s_i=0)
+J_{\mathrm{decision}}(x_i=0)
 <
-J_{\mathrm{decision}}(s_i=1)-\epsilon.
+J_{\mathrm{decision}}(x_i=1)-\varepsilon_{\mathrm{alg}}.
 ```
 
-若两项均不严格更优，则保持 $`s_i`$ 不变。
+若两项均不严格更优，则保持 $`x_i`$ 不变。
 
-其中 $`\epsilon=10^{-9}`$。连续 $`N`$ 次无变化后，代码还会显式检查所有单节点翻转；只有不存在有利且可行的单翻转时停止。因此该终态是本公共目标下的单翻转局部最优。
+其中 $`\varepsilon_{\mathrm{alg}}=10^{-9}`$。连续 $`N`$ 次无变化后，代码还会显式检查所有单节点翻转；只有不存在有利且可行的单翻转时停止。因此该终态是本系统目标下的单翻转局部最优。
 
 ### B. Comparison algorithms
 
@@ -176,7 +185,7 @@ WA-MCBR-Swap 在单翻转停止后尝试一个任务卸载、一个任务本地�
 
 ### C. Controller-assisted signaling
 
-每次 WA-MCBR 更新计入聚合 (K,W,V) 广播、任务标识、决策回复和确认四类控制消息。有效载荷为 38 bytes，按四条消息、每条 20-byte 协议头计算，总计 118 bytes/update。该项是模拟控制流量，不是实际蜂窝控制面测量。
+每次 WA-MCBR 更新计入聚合状态 $`(K(\mathbf{x}),W(\mathbf{x}),V(\mathbf{x}))`$ 广播、任务标识、决策回复和确认四类控制消息。有效载荷为 38 bytes，按四条消息、每条 20-byte 协议头计算，总计 118 bytes/update。该项是模拟控制流量，不是实际蜂窝控制面测量。
 
 ## V. Performance Evaluation
 
@@ -186,19 +195,19 @@ WA-MCBR-Swap 在单翻转停止后尝试一个任务卸载、一个任务本地�
 
 **研究问题。** 如何在不混淆真实追踪与仿真假设的条件下，构造可重复的工作量感知无线边缘卸载评估？
 
-**数据与样本。** 从 GenTD26 成功请求中按不同日期构造 5 个互不重叠、每池 100 条的任务池：2024-11-20、2024-11-25、2024-11-28、2024-12-03、2024-12-08。每池至少含 75 条 TXT2IMG、20 条 IMG2IMG 和 2 条 Inpainting；500 条 `source_row` 全部唯一。每条任务均在本次实验中重新调用 DeepSeek 一次，得到 500/500 有效画像，0 cache hit，0 failed profile，temperature=0。实际解析模型为 `deepseek-v4-flash`，平均 API 时延 1043.82 ms、P95 1300.48 ms；它是离线画像开销，不计入在线 WA-MCBR runtime。
+**数据与样本。** 从 GenTD26 成功请求中按不同日期构造 5 个互不重叠、每池 100 条的任务池：2024-11-20、2024-11-25、2024-11-28、2024-12-03、2024-12-08。每池至少含 75 条 TXT2IMG、20 条 IMG2IMG 和 2 条 Inpainting；500 条 `source_row` 全部唯一。每条任务均在本次实验中调用一次 LLM profiler，得到 500/500 有效画像，0 cache hit，0 failed profile，temperature=0。本次 LLM-profiler 实现实际解析模型为 `deepseek-v4-flash`，平均 API 时延 1043.82 ms、P95 1300.48 ms；它是离线画像开销，不计入在线 WA-MCBR runtime。
 
-**固定与变化设置。** 每个任务池生成 10 个独立位置/阴影衰落实例。固定默认值为 $`B=20`$ MHz、$`P_{\mathrm{up}}=0.2`$ W、$`P_{\mathrm{down}}=1.0`$ W、路径损耗指数 3.5、基准工作量容量 60、$`v_{\mathrm{base}}=0.1625`$ GB。主比较使用 abundant $`(C_W\times1.0,13\mathrm{GB})`$、moderate $`(C_W\times0.6,5\mathrm{GB})`$ 和 highly constrained $`(C_W\times0.3,2\mathrm{GB})`$；V-D 额外覆盖 5 个工作量容量和 5 个显存容量的完整网格，因此包含单资源与双资源紧约束。
+**固定与变化设置。** 每个任务池生成 10 个独立位置/阴影衰落实例。固定默认值为 $`B_{\mathrm{total}}=20`$ MHz、$`P_{\mathrm{up}}=0.2`$ W、$`P_{\mathrm{down}}=1.0`$ W、路径损耗指数 3.5、基准工作量容量 $`C_w=60`$、$`v_{\mathrm{base}}=0.1625`$ GB。主比较使用 abundant $`(C_w\times1.0,13\mathrm{GB})`$、moderate $`(C_w\times0.6,5\mathrm{GB})`$ 和 highly constrained $`(C_w\times0.3,2\mathrm{GB})`$；V-D 额外覆盖 5 个工作量容量和 5 个显存容量的完整网格，因此包含单资源与双资源紧约束。
 
-**指标。** 报告 (J)、投影后量化 Oracle gap、端到端时延、设备能耗、卸载率、工作量/显存利用率、真实违规率、runtime、updates 和 signaling。完整参数见 [V-A setup](04_汇总表格/v_a_experimental_setup.csv)，输入和画像见 [`02_任务池与画像`](02_任务池与画像)，调用证据见 [DeepSeek manifest](06_审计与复现/deepseek_generation_manifest.json)。
+**指标。** 报告 $`J(\mathbf{x})`$、投影后量化 QDP gap、端到端时延、设备能耗、卸载率、工作量/显存利用率、真实违规率、runtime、updates 和 signaling。完整参数见 [V-A setup](04_汇总表格/v_a_experimental_setup.csv)，输入和画像见 [`02_任务池与画像`](02_任务池与画像)，调用证据见 [DeepSeek manifest](06_审计与复现/deepseek_generation_manifest.json)。
 
 **证据边界。** 真实的是云端任务属性与执行时间；无线、端侧、载荷字节、显存和容量不是现场实测。该设置不能证明真实 AI-RAN 部署性能。
 
 ### V-B. Workload Representation Validation
 
-**研究问题。** 任务级工作量比常数任务计数是否更有信息量？DeepSeek 画像是否达到可验证价值？
+**研究问题。** 任务级工作量比常数任务计数是否更有信息量？LLM profiler 是否达到可验证价值？
 
-**协议。** 以执行时间除以各池均值得到 $`q_i^{\mathrm{data}}`$，Count 固定为 1，DeepSeek compute multiplier 也在池内归一化为均值 1。采用留一任务池验证：每次在其他 4 池训练线性与随机森林回归，在保留的第 5 池评估。指标为：
+**协议。** 以执行时间除以各池均值得到 Data workload $`q_i^{\mathrm{Data}}`$，Count workload $`q_i^{\mathrm{Count}}=1`$，LLM workload $`q_i^{\mathrm{LLM}}`$ 由 LLM-profiler compute multiplier 在池内归一化得到。本次 LLM profiler 使用 DeepSeek。采用留一任务池验证：每次在其他 4 池训练线性与随机森林回归，在保留的第 5 池评估；所有 MAE、RMSE、$`R^2`$ 和 Spearman 均以 $`q_i^{\mathrm{Data}}`$ 为预测目标。指标为：
 
 ```math
 \mathrm{MAE}=\frac{1}{n}\sum_i|\hat q_i-q_i|,
@@ -208,11 +217,11 @@ WA-MCBR-Swap 在单翻转停止后尝试一个任务卸载、一个任务本地�
 
 同时报告 $`R^2`$ 和 Spearman 秩相关。
 
-**实际结果。** 500 条池外预测的 Count / DeepSeek / Linear / Tree 分别为：MAE $`=0.46895/0.47615/0.37048/0.32511`$，RMSE $`=0.68826/0.67432/0.54884/0.48721`$，$`R^2=0.00000/0.04009/0.36410/0.49890`$，Spearman $`=0.00000/0.23470/0.47358/0.54763`$。Tree 是这里最强的受监督基线，DeepSeek 略优于 Count 的 RMSE 和 $`R^2`$，但 MAE 更高，且明显落后于受监督模型。
+**实际结果。** 500 条池外预测的 Count / LLM profiler (DeepSeek) / Linear / Tree 分别为：MAE $`=0.46895/0.47615/0.37048/0.32511`$，RMSE $`=0.68826/0.67432/0.54884/0.48721`$，$`R^2=0.00000/0.04009/0.36410/0.49890`$，Spearman $`=0.00000/0.23470/0.47358/0.54763`$。Tree 是这里最强的受监督基线，LLM profiler 略优于 Count 的 RMSE 和 $`R^2`$，但 MAE 更高，且明显落后于受监督模型。
 
 见 [Table II CSV](04_汇总表格/table_ii_profiler_metrics.csv)、[Table II PNG](05_论文图表/TABLE_PNG/Table_II_profiler_metrics.png)、[逐池指标](04_汇总表格/v_b_profiler_metrics_by_pool.csv) 与 [Fig. 2](05_论文图表/PNG/Fig_2_workload_validation.png)。
 
-**受证据约束的结论。** 本数据上，任务级工作量确实含有异构信息；DeepSeek 只能定位为可替换的启发式 profiler，不能声称优于有标签监督回归，也不能用该结果推广到其他模型或工作负载。
+**受证据约束的结论。** 本数据上，任务级工作量确实含有异构信息；LLM profiler 只能定位为可替换的启发式画像器，不能声称优于有标签监督回归，也不能用该结果推广到其他模型或工作负载。
 
 ### V-C. Overall Performance Comparison
 
@@ -222,7 +231,7 @@ WA-MCBR-Swap 在单翻转停止后尝试一个任务卸载、一个任务本地�
 
 **实际结果。** WA-MCBR 的平均 $`J`$ 在 abundant / moderate / highly constrained 场景分别为 245.2331 / 246.5251 / 254.4292；对应投影量化 gap 为 0.0093% / 0.0171% / 1.2189%，平均卸载率为 16.84% / 14.60% / 8.24%，显存利用率为 31.34% / 70.43% / 96.14%。所有 150 个 WA-MCBR 终态通过完整单翻转检查，真实工作量和显存违规均为 0。
 
-在 highly constrained 场景，WA-MCBR-Swap 的公共目标为 251.1484，低于 WA-MCBR 的 254.4292；这说明单翻转局部终态仍可能有可改进的交换邻域。QDP 的连续公共目标并不必然最小，因为 QDP 优化的是量化目标；因此不应按连续 $`J`$ 将 QDP 误称为全局最优。
+在 highly constrained 场景，WA-MCBR-Swap 的系统目标为 251.1484，低于 WA-MCBR 的 254.4292；这说明单翻转局部终态仍可能有可改进的交换邻域。QDP 的连续系统目标并不必然最小，因为 QDP 优化的是量化目标；因此不应按连续 $`J(\mathbf{x})`$ 将 QDP 误称为全局最优。
 
 见 [Table III](04_汇总表格/table_iii_algorithm_comparison.csv)、[主比较原始记录](03_逐运行结果/main_algorithm_runs.csv) 和 [QDP diagnostics](03_逐运行结果/main_oracle_diagnostics.csv)。
 
@@ -230,7 +239,7 @@ WA-MCBR-Swap 在单翻转停止后尝试一个任务卸载、一个任务本地�
 
 ### V-D. Performance under Binding Workload and Memory Constraints
 
-**研究问题。** 当工作量与显存约束实际绑定时，硬显存约束是否保持可行？硬、软、无显存约束在同一个公共业务目标下有何取舍？
+**研究问题。** 当工作量与显存约束实际绑定时，硬显存约束是否保持可行？硬、软、无显存约束在同一个系统目标下有何取舍？
 
 **协议。** 对 5 个工作量容量比例 $`\{20\%,40\%,60\%,80\%,100\%\}`$ 与 5 个可用显存 $`\{1.5,2,3,5,13\}`$ GB 的 25 个组合，在 50 个独立实例上分别运行 hard、soft、none 三种显存策略，共 3,750 个记录。三种策略用同一个无障碍 $`J`$ 评估；soft barrier penalty 独立保存。
 
@@ -238,7 +247,7 @@ WA-MCBR-Swap 在单翻转停止后尝试一个任务卸载、一个任务本地�
 
 见 [Fig. 3](05_论文图表/PNG/Fig_3_binding_gap_heatmap.png)、[Fig. 4](05_论文图表/PNG/Fig_4_memory_models.png)、[容量网格汇总](04_汇总表格/v_d_binding_capacity_summary.csv) 与 [逐运行记录](03_逐运行结果/binding_resource_runs.csv)。
 
-**受证据约束的结论。** 本仿真内硬约束以较高的公共目标换取零违规；无约束策略的较低 $`J`$ 不能解释为更可部署，因为它经常超过模拟显存上限。显存“违规”是软件代理，不是实测 GPU OOM。
+**受证据约束的结论。** 本仿真内硬约束以较高的系统目标换取零违规；无约束策略的较低 $`J(\mathbf{x})`$ 不能解释为更可部署，因为它经常超过模拟显存上限。显存“违规”是软件代理，不是实测 GPU OOM。
 
 ### V-E. Impact of Wireless Conditions
 
@@ -259,7 +268,7 @@ WA-MCBR-Swap 在单翻转停止后尝试一个任务卸载、一个任务本地�
 
 ### V-F. Robustness to Profiling Errors
 
-**研究问题。** 工作量与显存估计误差是否会导致公共目标退化或硬约束违规？
+**研究问题。** 工作量与显存估计误差是否会导致系统目标退化或硬约束违规？
 
 **协议。** 决策使用扰动估计：
 
@@ -287,7 +296,7 @@ WA-MCBR-Swap 在单翻转停止后尝试一个任务卸载、一个任务本地�
 
 见 [Fig. 6](05_论文图表/PNG/Fig_6_convergence_runtime_signaling.png)、[规模汇总](04_汇总表格/v_g_scale_summary.csv)、[QDP 复杂度](04_汇总表格/v_g_qdp_complexity.csv)、[代表性轨迹](03_逐运行结果/representative_convergence_trace.csv)。
 
-**受证据约束的结论。** WA-MCBR 的公共目标单调不增，接受更新时严格下降，并在每个终态通过单翻转检查；这不是全局最优收敛证明。QDP runtime 必须与在线 runtime 分开解读。
+**受证据约束的结论。** WA-MCBR 的系统目标单调不增，接受更新时严格下降，并在每个终态通过单翻转检查；这不是全局最优收敛证明。QDP runtime 必须与在线 runtime 分开解读。
 
 ### V-H. Failure Cases and Scope
 

@@ -1,11 +1,11 @@
 format,file,width_px,height_px,pixel_std,nonblank_pass,resolution_pass
-PNG,Fig_1_system_model.png,2964,1686,34.10370440548158,True,True
+PNG,Fig_1_system_model.png,2966,1484,35.883211256626474,True,True
 PNG,Fig_2_workload_validation.png,2790,1186,42.67234165274895,True,True
 PNG,Fig_3_binding_gap_heatmap.png,2080,1624,79.21070945299059,True,True
 PNG,Fig_4_memory_models.png,2800,2039,53.576090355388736,True,True
 PNG,Fig_5_wireless_fairness.png,2844,1173,55.67730165961341,True,True
 PNG,Fig_6_convergence_runtime_signaling.png,2800,1985,37.20991997655524,True,True
-TIFF,Fig_1_system_model.tiff,2964,1686,34.10370440548158,True,True
+TIFF,Fig_1_system_model.tiff,2966,1484,35.883211256626474,True,True
 TIFF,Fig_2_workload_validation.tiff,2790,1186,42.67234165274895,True,True
 TIFF,Fig_3_binding_gap_heatmap.tiff,2080,1624,79.21070945299059,True,True
 TIFF,Fig_4_memory_models.tiff,2800,2039,53.576090355388736,True,True

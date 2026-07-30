@@ -6,12 +6,119 @@ import pytest
 
 from mark10.summarize import (
     TABLE_III_COLUMNS,
+    build_main_profiler_table,
+    build_main_symbols_table,
     build_main_comparison_table,
+    choose_profiler_detail_source,
     format_table_iii_latex,
     jain_index,
     select_overall_profiler_rows,
     summarize_with_ci,
 )
+from mark10.table_rendering import table_ii_rank_classes
+
+
+def test_table_i_contains_exact_pdf_main_notation_contract() -> None:
+    table = build_main_symbols_table()
+
+    assert table.columns.tolist() == ["Symbol", "Definition"]
+    assert table["Symbol"].tolist() == [
+        "x_i",
+        "q_i",
+        "v_i",
+        "K(x)",
+        "W(x)",
+        "V(x)",
+        "C_w",
+        "V_avail",
+        "B_total",
+        "J(x)",
+    ]
+
+
+def test_table_ii_contains_only_compact_held_out_metrics() -> None:
+    source = pd.DataFrame(
+        {
+            "model": ["count", "count", "deepseek", "linear", "tree"],
+            "subset": [
+                "test_pool_01",
+                "all_out_of_pool",
+                "all_out_of_pool",
+                "all_out_of_pool",
+                "all_out_of_pool",
+            ],
+            "n": [100, 500, 500, 500, 500],
+            "constant_prediction": [True, True, False, False, False],
+            "mae": [0.4, 0.47, 0.48, 0.37, 0.33],
+            "rmse": [0.6, 0.69, 0.67, 0.55, 0.49],
+            "r2": [0.0, 0.0, 0.04, 0.36, 0.50],
+            "spearman": [0.0, 0.0, 0.23, 0.47, 0.55],
+        }
+    )
+
+    table = build_main_profiler_table(source)
+
+    assert table.columns.tolist() == [
+        "Model",
+        "MAE down",
+        "RMSE down",
+        "R2 up",
+        "Spearman up",
+    ]
+    assert table["Model"].tolist() == ["Count", "DeepSeek", "Linear", "Tree"]
+    assert table["MAE down"].tolist() == pytest.approx([0.47, 0.48, 0.37, 0.33])
+
+
+def test_table_ii_ranking_marks_tree_best_and_linear_second() -> None:
+    table = pd.DataFrame(
+        {
+            "Model": ["Count", "DeepSeek", "Linear", "Tree"],
+            "MAE down": [0.47, 0.48, 0.37, 0.33],
+            "RMSE down": [0.69, 0.67, 0.55, 0.49],
+            "R2 up": [0.00, 0.04, 0.36, 0.50],
+            "Spearman up": [0.00, 0.23, 0.47, 0.55],
+        }
+    )
+
+    ranks = table_ii_rank_classes(table)
+
+    for column in table.columns[1:]:
+        assert ranks[(3, column)] == "best"
+        assert ranks[(2, column)] == "second"
+
+
+def test_profiler_detail_source_does_not_replace_pool_rows_with_aggregate_only() -> None:
+    aggregate_only = pd.DataFrame(
+        {"model": ["count"], "subset": ["all_out_of_pool"]}
+    )
+    detailed = pd.DataFrame(
+        {
+            "model": ["count", "count"],
+            "subset": ["test_pool_01", "all_out_of_pool"],
+        }
+    )
+
+    source, should_persist = choose_profiler_detail_source(aggregate_only, detailed)
+
+    assert source.equals(detailed)
+    assert should_persist is False
+
+
+def test_profiler_detail_source_accepts_fresh_per_pool_metrics() -> None:
+    fresh = pd.DataFrame(
+        {
+            "model": ["count", "count"],
+            "subset": ["test_pool_01", "all_out_of_pool"],
+        }
+    )
+    stale = pd.DataFrame(
+        {"model": ["count"], "subset": ["all_out_of_pool"]}
+    )
+
+    source, should_persist = choose_profiler_detail_source(fresh, stale)
+
+    assert source.equals(fresh)
+    assert should_persist is True
 
 
 def test_jain_index_is_one_for_equal_values() -> None:

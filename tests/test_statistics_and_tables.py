@@ -15,7 +15,7 @@ from mark10.summarize import (
     select_overall_profiler_rows,
     summarize_with_ci,
 )
-from mark10.table_rendering import table_ii_rank_classes
+from mark10 import table_rendering
 
 
 def test_table_i_contains_exact_pdf_main_notation_contract() -> None:
@@ -69,7 +69,10 @@ def test_table_ii_contains_only_compact_held_out_metrics() -> None:
     assert table["MAE down"].tolist() == pytest.approx([0.47, 0.48, 0.37, 0.33])
 
 
-def test_table_ii_ranking_marks_tree_best_and_linear_second() -> None:
+def test_table_ii_rendering_does_not_apply_best_or_second_best_emphasis(
+    tmp_path,
+    monkeypatch,
+) -> None:
     table = pd.DataFrame(
         {
             "Model": ["Count", "DeepSeek", "Linear", "Tree"],
@@ -79,12 +82,20 @@ def test_table_ii_ranking_marks_tree_best_and_linear_second() -> None:
             "Spearman up": [0.00, 0.23, 0.47, 0.55],
         }
     )
+    source = tmp_path / "table_ii.csv"
+    table.to_csv(source, index=False)
+    captured: dict = {}
 
-    ranks = table_ii_rank_classes(table)
+    def capture_draw_table(*args, **kwargs) -> None:
+        captured.update(kwargs)
 
-    for column in table.columns[1:]:
-        assert ranks[(3, column)] == "best"
-        assert ranks[(2, column)] == "second"
+    monkeypatch.setattr(table_rendering, "_draw_table", capture_draw_table)
+
+    table_rendering.render_table_ii(source, tmp_path / "table_ii.png")
+
+    assert captured.get("ranked_cells") is None
+    assert "Bold" not in captured["note"]
+    assert "underline" not in captured["note"]
 
 
 def test_profiler_detail_source_does_not_replace_pool_rows_with_aggregate_only() -> None:

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.patches import Circle, FancyArrowPatch, FancyBboxPatch
+from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 import numpy as np
 import pandas as pd
 from PIL import Image
@@ -90,7 +90,7 @@ def _arrow(ax: plt.Axes, start: tuple[float, float], end: tuple[float, float], c
 
 
 def figure_1() -> None:
-    fig, axes = plt.subplots(1, 2, figsize=(7.2, 4.5), gridspec_kw={"width_ratios": [1.18, 1]})
+    fig, axes = plt.subplots(1, 2, figsize=(7.2, 4.0), gridspec_kw={"width_ratios": [1.18, 1]})
     ax, eq = axes
     ax.set_xlim(0, 10)
     ax.set_ylim(0, 10)
@@ -98,23 +98,49 @@ def figure_1() -> None:
     _panel_label(ax, "a")
     ax.set_title("Wireless edge offloading system", loc="left", pad=8)
 
-    edge = FancyBboxPatch((6.4, 3.2), 2.8, 3.6, boxstyle="round,pad=0.12", fc="#E8F0F7", ec=PALETTE["blue"], lw=1.2)
-    ax.add_patch(edge)
-    ax.text(7.8, 5.8, "Edge GPU pool", ha="center", va="center", fontweight="bold", color=PALETTE["blue"])
-    ax.text(7.8, 5.05, "shared compute", ha="center", va="center")
-    ax.text(7.8, 4.55, "+ memory", ha="center", va="center")
-    ax.text(7.8, 3.85, "controller", ha="center", va="center", color=PALETTE["ink"])
+    node_group = FancyBboxPatch(
+        (0.45, 1.8), 3.15, 6.35, boxstyle="round,pad=0.12",
+        fc="#F7F9FA", ec=PALETTE["gray"], lw=1.0,
+    )
+    ax.add_patch(node_group)
+    ax.text(2.03, 7.55, "Wireless nodes", ha="center", va="center", fontweight="bold")
+    ax.text(2.03, 6.95, r"binary choice  $s_i\in\{0,1\}$", ha="center", va="center", color=PALETTE["ink"])
+    node_y = [5.85, 4.65, 2.85]
+    node_labels = ["Node 1", "Node 2", "Node N"]
+    for y, label in zip(node_y, node_labels):
+        node = FancyBboxPatch(
+            (1.02, y - 0.38), 2.02, 0.76, boxstyle="round,pad=0.05",
+            fc="white", ec=PALETTE["ink"], lw=0.85,
+        )
+        ax.add_patch(node)
+        ax.text(2.03, y, label, ha="center", va="center")
+    ax.text(2.03, 3.75, r"$\vdots$", ha="center", va="center", color=PALETTE["gray"], fontsize=11)
 
-    positions = [(1.2, 7.8), (1.1, 5.0), (1.5, 2.0), (3.5, 8.5), (3.8, 1.6)]
-    labels = [r"$i=1$", r"$i=2$", r"$i=3$", r"$\cdots$", r"$i=N$"]
-    for (x, y), label in zip(positions, labels):
-        ax.add_patch(Circle((x, y), 0.55, fc="white", ec=PALETTE["ink"], lw=1.0))
-        ax.text(x, y, label, ha="center", va="center")
-        _arrow(ax, (x + 0.55, y), (6.25, 5.0), PALETTE["teal"])
-    ax.text(3.7, 6.0, "uplink intent + payload", ha="center", color=PALETTE["teal"])
-    ax.text(3.8, 4.2, "decision + downlink output", ha="center", color=PALETTE["blue"])
-    _arrow(ax, (6.25, 4.7), (2.0, 4.1), PALETTE["blue"])
-    ax.text(0.45, 0.45, r"Each node chooses $s_i\in\{0,1\}$", color=PALETTE["ink"])
+    edge = FancyBboxPatch(
+        (6.35, 1.8), 3.15, 6.35, boxstyle="round,pad=0.12",
+        fc="#E8F0F7", ec=PALETTE["blue"], lw=1.2,
+    )
+    ax.add_patch(edge)
+    ax.text(7.93, 7.55, "Edge server", ha="center", va="center", fontweight="bold", color=PALETTE["blue"])
+    controller = FancyBboxPatch(
+        (6.86, 5.35), 2.12, 1.05, boxstyle="round,pad=0.06",
+        fc="white", ec=PALETTE["teal"], lw=1.0,
+    )
+    ax.add_patch(controller)
+    ax.text(7.92, 5.88, "Controller", ha="center", va="center", fontweight="bold", color=PALETTE["teal"])
+    gpu_pool = FancyBboxPatch(
+        (6.86, 2.65), 2.12, 1.85, boxstyle="round,pad=0.06",
+        fc="white", ec=PALETTE["blue"], lw=1.0,
+    )
+    ax.add_patch(gpu_pool)
+    ax.text(7.92, 3.78, "Shared GPU pool", ha="center", va="center", fontsize=6.5, fontweight="bold", color=PALETTE["blue"])
+    ax.text(7.92, 3.22, "compute + memory", ha="center", va="center", fontsize=6.4, color=PALETTE["ink"])
+    _arrow(ax, (7.92, 5.25), (7.92, 4.62), PALETTE["gray"])
+
+    _arrow(ax, (3.78, 5.72), (6.22, 5.72), PALETTE["teal"])
+    ax.text(5.0, 6.08, "Intent + payload", ha="center", va="bottom", color=PALETTE["teal"])
+    _arrow(ax, (6.22, 4.08), (3.78, 4.08), PALETTE["blue"])
+    ax.text(5.0, 3.72, "Decision + output", ha="center", va="top", color=PALETTE["blue"])
 
     eq.axis("off")
     _panel_label(eq, "b")
@@ -131,7 +157,7 @@ def figure_1() -> None:
     eq.text(0.08, 0.36, r"Feasible: $W\leq W_{\max}$ and $V\leq V_{\max}$", transform=eq.transAxes, fontsize=8, fontweight="bold")
     eq.text(0.08, 0.25, r"Congestion: $D_{\rm comp}=D_0+a\,\rho/(1-\rho)$, $\rho=W/C_W$", transform=eq.transAxes, fontsize=8)
     eq.text(0.08, 0.12, "WA-MCBR accepts only feasible single flips\nthat reduce the public objective J.", transform=eq.transAxes, linespacing=1.5)
-    fig.subplots_adjust(left=0.04, right=0.98, top=0.91, bottom=0.06, wspace=0.15)
+    fig.subplots_adjust(left=0.04, right=0.98, top=0.90, bottom=0.07, wspace=0.13)
     _save_all(fig, "Fig_1_system_model")
 
 

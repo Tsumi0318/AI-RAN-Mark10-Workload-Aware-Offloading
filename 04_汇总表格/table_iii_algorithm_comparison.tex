@@ -1,0 +1,44 @@
+\begin{table*}[t]
+\centering
+\caption{Overall algorithm comparison across three resource regimes.}
+\label{tab:overall_algorithm_comparison}
+\setlength{\tabcolsep}{4pt}
+\small
+\begin{tabular}{llrrrrrr}
+\toprule
+Scenario & Algorithm & $J\downarrow$ & Gap (\%)$\downarrow$ & E2E delay (s)$\downarrow$ & Energy (J)$\downarrow$ & Violation (\%)$\downarrow$ & Runtime (ms)$\downarrow$ \\
+\midrule
+Resource-abundant & QDP-Oracle & \textbf{245.213} & \textbf{0.000} & 43.26 & 7159.8 & \textbf{0.0} & 11710.28 \\
+ & WA-MCBR & 245.233 & 0.009 & 43.19 & 7125.3 & \textbf{0.0} & 35.57 \\
+ & WA-MCBR-Swap & \underline{245.221} & \underline{0.004} & 43.25 & 7151.9 & \textbf{0.0} & 53.90 \\
+ & Capacity-aware Greedy & 245.925 & 0.298 & 43.06 & 7064.9 & \textbf{0.0} & 15.52 \\
+ & Lagrangian/Primal-dual & 248.278 & 1.256 & 43.65 & 7335.1 & \textbf{0.0} & 35.53 \\
+ & Legacy & 251.599 & 2.675 & \underline{42.27} & \underline{6642.0} & \textbf{0.0} & 3.71 \\
+ & Random & 446.580 & 37.251 & \textbf{41.30} & \textbf{5335.9} & \textbf{0.0} & \underline{0.08} \\
+ & All-local & 265.842 & 8.293 & 49.00 & 9800.6 & \textbf{0.0} & \textbf{0.00} \\
+ & All-offload & -- & -- & -- & 104.7 & 100.0 & 0.00 \\
+\midrule
+Moderately constrained & QDP-Oracle & \textbf{246.507} & \textbf{0.000} & 43.64 & 7335.3 & \textbf{0.0} & 1732.73 \\
+ & WA-MCBR & 246.525 & 0.017 & 43.60 & 7318.2 & \textbf{0.0} & 27.77 \\
+ & WA-MCBR-Swap & \underline{246.511} & \underline{0.011} & 43.59 & 7311.2 & \textbf{0.0} & 46.18 \\
+ & Capacity-aware Greedy & 247.045 & 0.225 & \underline{43.41} & \underline{7228.1} & \textbf{0.0} & 13.86 \\
+ & Lagrangian/Primal-dual & 248.869 & 0.426 & \textbf{43.01} & \textbf{7019.9} & \textbf{0.0} & 9.06 \\
+ & Legacy & 254.192 & 2.110 & 44.19 & 7549.9 & \textbf{0.0} & 2.16 \\
+ & Random & 256.465 & 2.867 & 44.54 & 7702.8 & \textbf{0.0} & \underline{0.38} \\
+ & All-local & 265.842 & 7.698 & 49.00 & 9800.6 & \textbf{0.0} & \textbf{0.00} \\
+ & All-offload & -- & -- & -- & 104.7 & 100.0 & 0.00 \\
+\midrule
+Highly constrained & QDP-Oracle & 251.840 & \textbf{0.000} & 45.68 & 8284.6 & \textbf{0.0} & 298.75 \\
+ & WA-MCBR & 254.429 & 1.219 & 46.26 & 8547.2 & \textbf{0.0} & 5.54 \\
+ & WA-MCBR-Swap & \underline{251.148} & 0.192 & 45.42 & 8162.5 & \textbf{0.0} & 35.79 \\
+ & Capacity-aware Greedy & 251.231 & 0.164 & \textbf{45.17} & \textbf{8049.5} & \textbf{0.0} & 7.45 \\
+ & Lagrangian/Primal-dual & \textbf{250.985} & \underline{0.130} & \underline{45.36} & \underline{8137.3} & \textbf{0.0} & 9.96 \\
+ & Legacy & 254.472 & 1.222 & 46.27 & 8550.6 & \textbf{0.0} & 1.64 \\
+ & Random & 254.330 & 1.212 & 46.25 & 8539.7 & \textbf{0.0} & \underline{0.51} \\
+ & All-local & 265.842 & 5.462 & 49.00 & 9800.6 & \textbf{0.0} & \textbf{0.00} \\
+ & All-offload & -- & -- & -- & 104.7 & 100.0 & 0.00 \\
+\bottomrule
+\end{tabular}
+\vspace{2pt}
+\begin{minipage}{\textwidth}\footnotesize Values are means over 50 independent task-pool/wireless instances. Bold and underlined values denote the best and second-best values, respectively; tied best values are all bold and no second-best is marked. Rankings exclude methods with nonzero hard-constraint violation; the violation column ranks all methods. QDP-Oracle is an offline benchmark. ``--'' denotes an undefined metric.\end{minipage}
+\end{table*}
